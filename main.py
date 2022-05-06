@@ -1,15 +1,15 @@
-# Ex 4.4 - HTTP Server Shell
-# Design Author: Barak Gonen
-# Implementation Author: Tomer Yehezqel
-# Purpose: Provide a basis for Ex. 4.4
-# Note: The code is written in a simple way, without classes, log files or other utilities, for educational purpose
-# Usage: Fill the missing functions and constants
+"""
+Ex 4.4 - HTTP Server Shell
+Design Author: Barak Gonen
+Implementation Author: Tomer Yehezqel
+Purpose: Provide a basis for Ex. 4.4
+Note: The code is written in a simple way, without classes, log files or other utilities, for educational purpose
+Usage: Fill the missing functions and constants
+"""
 
-# TO DO: import modules
 import os
 import socket
 
-# TO DO: set constants
 LOCALHOST = '127.0.0.1'
 IP = '0.0.0.0'
 PORT = 80
@@ -34,18 +34,13 @@ def get_file_data(filename):
 
 def handle_client_request(resource, client_socket):
     """ Check the required resource, generate proper HTTP response and send to client"""
-    # TO DO : add code that given a resource (URL and parameters) generates the proper response
 
     if resource == '/':
         url = '/' + DEFAULT_URL.split('/')[-1]
     else:
         url = resource
 
-    # TO DO: check if URL had been redirected, not available or other error code. For example:
-    # if url in REDIRECTION_DICTIONARY:
-    # TO DO: send 302 redirection response
-
-    # TO DO: extract requested file tupe from URL (html, jpg etc)
+    # extract requested file type from URL (html, jpg etc):
     filetype = url.split('.')[-1]
     content_type = 0
     if (filetype == 'html') or (filetype == 'txt'):
@@ -59,9 +54,11 @@ def handle_client_request(resource, client_socket):
     elif filetype == 'ico':
         content_type = 'image/x-icon'
 
-    # TO DO: read the data from the file
+    # read the data from the file:
     get_file_validation_flag, data = get_file_data(url)
     data_length = len(data)
+
+    # sending the data with proper message:
     if content_type:
         http_response = f"HTTP/1.1 200 OK\r\n Content-Length: {data_length}\r\n Content-Type: {content_type}\r\n\r\n".encode()
         http_response += data
@@ -92,7 +89,6 @@ def handle_client(client_socket):
     client_socket.send(FIXED_RESPONSE.encode())
 
     while True:
-        # TO DO: insert code that receives client request
         client_request = client_socket.recv(1024).decode()
         valid_http, request_parts = validate_http_request(client_request)
         if valid_http:
@@ -109,7 +105,7 @@ def handle_client(client_socket):
 
 
 def main():
-    # Open a socket and loop forever while waiting for clients
+    # Open a socket and loop forever while waiting for clients:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((LOCALHOST, PORT))
     server_socket.listen()
@@ -124,5 +120,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Call the main handler function
     main()
