@@ -40,22 +40,36 @@ def handle_client_request(resource, client_socket):
     else:
         url = resource
 
-    # extract requested file type from URL (html, jpg etc):
-    filetype = url.split('.')[-1]
-    content_type = 0
-    if (filetype == 'html') or (filetype == 'txt'):
-        content_type = 'text/html; charset=utf-8'
-    elif filetype == 'jpg':
-        content_type = 'image/jpeg'
-    elif filetype == 'js':
-        content_type = 'text/javascript; charset=UTF-8'
-    elif filetype == 'css':
-        content_type = 'text/css'
-    elif filetype == 'ico':
-        content_type = 'image/x-icon'
+    if '.' in url:
+        resource_is_file_flag = True
+    else:
+        resource_is_file_flag = False
 
-    # read the data from the file:
-    get_file_validation_flag, data = get_file_data(url)
+    # extract requested file type from URL (html, jpg etc):
+    data = None
+    content_type = 0
+    get_data_validation_flag = False
+    if resource_is_file_flag:
+        filetype = url.split('.')[-1]
+        if (filetype == 'html') or (filetype == 'txt'):
+            content_type = 'text/html; charset=utf-8'
+        elif filetype == 'jpg':
+            content_type = 'image/jpeg'
+        elif filetype == 'js':
+            content_type = 'text/javascript; charset=UTF-8'
+        elif filetype == 'css':
+            content_type = 'text/css'
+        elif filetype == 'ico':
+            content_type = 'image/x-icon'
+        # read the data from the file:
+        get_data_validation_flag, data = get_file_data(url)
+
+    else:
+        if url[:-1] == '/calculate-next?num=':
+            content_type = 'text/html; charset=utf-8'
+            data = str(int(url[-1]) + 1).encode()
+            get_data_validation_flag = True
+
     data_length = len(data)
 
     # sending the data with proper message:
@@ -66,7 +80,7 @@ def handle_client_request(resource, client_socket):
         print(f"False http header is received: {content_type}.")
         http_response = f"HTTP/1.1 403 Forbidden\r\n".encode()
         http_response += data
-    if get_file_validation_flag:
+    if get_data_validation_flag:
         client_socket.send(http_response)
     else:
         http_response = f"HTTP/1.1 {data}\r\n\r\n"
