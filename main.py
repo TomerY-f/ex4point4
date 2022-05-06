@@ -17,16 +17,19 @@ SOCKET_TIMEOUT = 1000
 PROJECT_ROOT_DIR = os.getcwd()
 WEB_ROOT_DIR = os.path.join(PROJECT_ROOT_DIR, 'webroot', 'webroot')
 FIXED_RESPONSE = ''
-DEFAULT_URL = os.path.join(WEB_ROOT_DIR, 'index.html').replace('\\',  '/')
+DEFAULT_URL = os.path.join(WEB_ROOT_DIR, 'index.html').replace('\\', '/')
 
 
 def get_file_data(filename):
     """ Get data from file """
-    filename_path = os.path.join(WEB_ROOT_DIR, filename[1:]).replace('\\',  '/')
-
-    with open(filename_path, "r", encoding='utf-8') as file:
-        file_data = file.read()
-    return file_data
+    filename_path = os.path.join(WEB_ROOT_DIR, filename[1:]).replace('\\', '/')
+    try:
+        with open(filename_path, "rb") as file:
+            file_data = file.read()
+            return True, file_data
+    except FileNotFoundError:
+        file_not_found_log = "404 Not Found"
+        return False, file_not_found_log
 
 
 def handle_client_request(resource, client_socket):
@@ -44,19 +47,33 @@ def handle_client_request(resource, client_socket):
 
     # TO DO: extract requested file tupe from URL (html, jpg etc)
     filetype = url.split('.')[-1]
-    if filetype == 'html':
-        http_header = 'Accept: text/html\r\n'  # TO DO: generate proper HTTP header
-    """
+    content_type = 0
+    if (filetype == 'html') or (filetype == 'txt'):
+        content_type = 'text/html; charset=utf-8'
     elif filetype == 'jpg':
-        http_header =  # TO DO: generate proper jpg header
-    # TO DO: handle all other headers
-    """
+        content_type = 'image/jpeg'
+    elif filetype == 'js':
+        content_type = 'text/javascript; charset=UTF-8'
+    elif filetype == 'css':
+        content_type = 'text/css'
+    elif filetype == 'ico':
+        content_type = 'image/x-icon'
 
     # TO DO: read the data from the file
-    data = get_file_data(url)
-    # http_response = http_header + data
-    http_response = data
-    client_socket.send(http_response.encode())
+    get_file_validation_flag, data = get_file_data(url)
+    data_length = len(data)
+    if content_type:
+        http_response = f"HTTP/1.1 200 OK\r\n Content-Length: {data_length}\r\n Content-Type: {content_type}\r\n\r\n".encode()
+        http_response += data
+    else:
+        print(f"False http header is received: {content_type}.")
+        http_response = f"HTTP/1.1 403 Forbidden\r\n".encode()
+        http_response += data
+    if get_file_validation_flag:
+        client_socket.send(http_response)
+    else:
+        http_response = f"HTTP/1.1 {data}\r\n\r\n"
+        client_socket.send(http_response)
 
 
 def validate_http_request(request):
@@ -65,7 +82,7 @@ def validate_http_request(request):
     """
     request_parts = request.split()
     if (request_parts[0] == 'GET') and (request_parts[2] == 'HTTP/1.1') and (request[-2:] == '\r\n'):
-        return True, request_parts[1]
+        return True, request_parts
     return False, None
 
 
@@ -77,8 +94,9 @@ def handle_client(client_socket):
     while True:
         # TO DO: insert code that receives client request
         client_request = client_socket.recv(1024).decode()
-        valid_http, resource = validate_http_request(client_request)
+        valid_http, request_parts = validate_http_request(client_request)
         if valid_http:
+            resource = request_parts[1]
             print(f'Got a valid HTTP request: {resource}')
             handle_client_request(resource, client_socket)
             break
