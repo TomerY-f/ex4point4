@@ -40,16 +40,17 @@ def handle_client_request(resource, client_socket):
     else:
         url = resource
 
+    resource_type = ''
     if '.' in url:
-        resource_is_file_flag = True
-    else:
-        resource_is_file_flag = False
+        resource_type = 'file'
+    elif '?' in url:
+        resource_type = 'parameter'
 
     # extract requested file type from URL (html, jpg etc):
     data = None
     content_type = 0
     get_data_validation_flag = False
-    if resource_is_file_flag:
+    if resource_type == 'file':
         filetype = url.split('.')[-1]
         if (filetype == 'html') or (filetype == 'txt'):
             content_type = 'text/html; charset=utf-8'
@@ -64,11 +65,18 @@ def handle_client_request(resource, client_socket):
         # read the data from the file:
         get_data_validation_flag, data = get_file_data(url)
 
-    else:
-        if url[:-1] == '/calculate-next?num=':
+    # Handle parameter request:
+    elif resource_type == 'parameter':
+        parameter_type = url.split('?')[0]
+        parameter_value = url.split('?')[1]
+        if parameter_type[1:] == 'calculate-next':
+            number = parameter_value.split('=')[1]
             content_type = 'text/html; charset=utf-8'
-            data = str(int(url[-1]) + 1).encode()
+            data = str(int(number) + 1).encode()
             get_data_validation_flag = True
+        else:
+            print(f'Unknown parameter type: {parameter_type[1:]}')
+            get_data_validation_flag = False
 
     data_length = len(data)
 
@@ -80,6 +88,7 @@ def handle_client_request(resource, client_socket):
         print(f"False http header is received: {content_type}.")
         http_response = f"HTTP/1.1 403 Forbidden\r\n".encode()
         http_response += data
+
     if get_data_validation_flag:
         client_socket.send(http_response)
     else:
