@@ -7,10 +7,14 @@ Note: The code is written in a simple way, without classes, log files or other u
 Usage: Fill the missing functions and constants
 """
 
-import os
 import socket
 
-from client_handler import handle_client, LOCALHOST, PORT, SOCKET_TIMEOUT
+from client_handler import handle_client
+
+LOCALHOST = '127.0.0.1'
+IP = '0.0.0.0'
+PORT = 80
+SOCKET_TIMEOUT = 1000  # _MS
 
 
 def main():

@@ -1,19 +1,10 @@
-import os
 import pathlib
 
-LOCALHOST = '127.0.0.1'
-IP = '0.0.0.0'
-PORT = 80
-SOCKET_TIMEOUT = 1000  # _MS
+from http_conventions import CONTENT_TYPE_HEADER, HTTP_RESPONSE_CODE
+from http_response import HttpResponse
+
 WEB_ROOT_DIR = 'webroot'
 DEFAULT_URL = (pathlib.Path(WEB_ROOT_DIR) / 'index.html').as_posix()
-CONTENT_TYPE_HEADER = {'html': 'text/html; charset=utf-8',
-                       'txt': 'text/html; charset=utf-8',
-                       'jpg': 'image/jpeg',
-                       'gif': 'image/gif',
-                       'js': 'text/javascript; charset=UTF-8',
-                       'css': 'text/css',
-                       'ico': 'image/x-icon'}
 
 
 def get_file_data(filename):
@@ -24,7 +15,7 @@ def get_file_data(filename):
             file_data = file.read()
             return True, file_data
     else:
-        return False, "404 Not Found"
+        return False, None
 
 
 def handle_client_request(resource, client_socket):
@@ -61,22 +52,17 @@ def handle_client_request(resource, client_socket):
             data = str(int(number) + 1).encode()
             get_data_status = True
         else:
-            print(f'Unknown parameter type: {parameter_type[1:]}')
+            print(f'Unknown parameter type: {parameter_type[1:]}. 404 will send to browser.')
             get_data_status = False
 
     # sending the data with proper message:
-    if content_type:
-        http_response = f"HTTP/1.1 200 OK\r\n Content-Length: {len(data)}\r\n Content-Type: {content_type}\r\n\r\n".encode()
-        http_response += data
-    else:
-        print(f"False http header is received: {content_type}.")
-        http_response = f"HTTP/1.1 403 Forbidden\r\n".encode()
-        http_response += data
+    http_response = HttpResponse(response_code=HTTP_RESPONSE_CODE['ok'], content_type=content_type,
+                                 data=data).build_http_response()
 
     if get_data_status:
         client_socket.send(http_response)
     else:
-        http_response = f"HTTP/1.1 {data}\r\n\r\n"
+        http_response = HttpResponse(response_code=HTTP_RESPONSE_CODE['not_found'])
         client_socket.send(http_response)
 
 
