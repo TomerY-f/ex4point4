@@ -2,6 +2,7 @@ import pathlib
 
 from http_conventions import CONTENT_TYPE_HEADER, HTTP_RESPONSE_CODE
 from http_response import HttpResponse
+from parameter_resource_handler import ParameterResourceHandler
 
 WEB_ROOT_DIR = 'webroot'
 DEFAULT_URL = (pathlib.Path(WEB_ROOT_DIR) / 'index.html').as_posix()
@@ -44,16 +45,8 @@ def handle_client_request(resource, client_socket):
 
     # Handle parameter request:
     elif resource_type == 'parameter':
-        parameter_type = url.split('?')[0]
-        parameter_value = url.split('?')[1]
-        if parameter_type[1:] == 'calculate-next':
-            number = parameter_value.split('=')[1]
-            content_type = CONTENT_TYPE_HEADER['txt']
-            data = str(int(number) + 1).encode()
-            get_data_status = True
-        else:
-            print(f'Unknown parameter type: {parameter_type[1:]}. 404 will send to browser.')
-            get_data_status = False
+        content_type = CONTENT_TYPE_HEADER['txt']
+        get_data_status, data = ParameterResourceHandler(url=url).calculation()
 
     # sending the data with proper message:
     http_response = HttpResponse(response_code=HTTP_RESPONSE_CODE['ok'], content_type=content_type,
